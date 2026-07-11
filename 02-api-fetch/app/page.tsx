@@ -25,7 +25,7 @@ export default function Home() {
       setLoading(true);
 
       const response = await fetch(
-        "https://jsonplaceholder.typicode.com/usersd",
+        "https://jsonplaceholder.typicode.com/users",
       );
 
       if (!response.ok) return [];
@@ -65,6 +65,7 @@ export default function Home() {
           ))}
         </div>
       )}
+      {error && <p className="text-red-500">Error!!!</p>}
     </div>
   );
 }
