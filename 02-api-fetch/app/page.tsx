@@ -1,71 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type User = {
+const BASE_URL = "https://jsonplaceholder.typicode.com";
+
+type Post = {
   id: number;
-  name: string;
-  username: string;
-  company: UserCompany[];
-};
-
-type UserCompany = {
-  name: string;
-  catchPhrase: string;
-  bs: string;
+  title: string;
 };
 
 export default function Home() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState();
+  const [isLoading, setIsLoading] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [page, setPage] = useState(0);
 
-  const getUsers = async () => {
-    try {
-      setLoading(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-      const response = await fetch(
-        "https://jsonplaceholder.typicode.com/users",
-      );
+  useEffect(() => {
+    const fetchPost = async () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
 
-      if (!response.ok) return [];
+      setIsLoading(true);
 
-      const data = await response.json();
+      try {
+        const response = await fetch(`${BASE_URL}/posts?page=${page}`, {
+          signal: abortControllerRef.current?.signal,
+        });
+        const posts = (await response.json()) as Post[];
+        setPosts(posts);
+      } catch (error: any) {
+        setError(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      setError("");
-      setUsers(data);
-      setLoading(false);
-    } catch (error) {
-      setError(`${error}`);
-      setLoading(false);
-      console.log(error);
-    }
-  };
+    fetchPost();
+  }, [page]);
+
+  if (error) {
+    return <div>Something went wrong! Please try again.</div>;
+  }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center gap-10">
-      <h1>Simple Api Fetch App</h1>
-      <button onClick={() => getUsers()}>Click here!</button>
-      {loading ? (
-        <p>Lädt...</p>
+    <div>
+      <h1>Data Fetching in React</h1>
+      <button onClick={() => setPage((prev) => prev + 1)}>
+        Increase Page ({page})
+      </button>
+      {isLoading ? (
+        <div>Loading...</div>
       ) : (
-        <div>
-          {users.map((user) => (
-            <p key={user.id}>
-              <span>{user.name}</span>
-              <span>{user.username}</span>
-              {user.company.map((companyInfo) => (
-                <p key={companyInfo.name}>
-                  <span>{companyInfo.name}</span>
-                  <span>{companyInfo.catchPhrase}</span>
-                  <span>{companyInfo.bs}</span>
-                </p>
-              ))}
-            </p>
+        <ul>
+          {posts.map((post) => (
+            <li key={post.id}>{post.title}</li>
           ))}
-        </div>
+        </ul>
       )}
-      {error && <p className="text-red-500">Error!!!</p>}
     </div>
   );
 }
